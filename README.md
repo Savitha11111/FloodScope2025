@@ -142,4 +142,6 @@ Recent enhancements ensure:
 
 ---
 
-**FloodScope AI** - Providing accurate, real-time flood monitoring for safer communities worldwide.
+**FloodScope AI** - Providing accurate, real-time flood monitoring for safer communities.
+
+**Developed by Savitha M @2025

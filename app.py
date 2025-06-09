@@ -74,7 +74,7 @@ from email_alerts import display_email_alert_interface
 
 # Configure page
 st.set_page_config(
-    page_title="FloodScope - AI Flood Detection",
+    page_title="FloodScope",
     page_icon="🌊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -133,7 +133,7 @@ def main():
     
     # Header with current time to verify timezone fix
     current_time = get_accurate_current_time()
-    st.title("🌊 FloodScope - AI-Driven Flood Detection System")
+    st.title("🌊 FloodScope ")
     st.markdown(f"Real-time flood mapping using satellite imagery and AI | Current Time: {current_time.strftime('%Y-%m-%d %H:%M:%S IST')}")
     
     # Sidebar for controls
@@ -1174,7 +1174,7 @@ def display_welcome_screen():
     
     ### 🚀 Key Features:
     - **Dual-Sensor Analysis**: Combines Sentinel-1 (radar) and Sentinel-2 (optical) satellite imagery
-    - **AI-Powered Detection**: Uses advanced UNet-Lite and SAR UNet models for accurate flood mapping
+    - **AI-Powered Detection**: Uses Prithvi and AI4G SAR for accurate flood mapping
     - **Real-time Monitoring**: Automated updates and continuous monitoring capabilities
     - **Weather Verification**: Cross-references with meteorological data for enhanced accuracy
     - **Natural Language Support**: Ask questions about flood data using our AI assistant

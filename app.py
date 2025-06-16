@@ -16,7 +16,7 @@ import pytz
 import requests
 import json
 
-# Import our services for the floodscope
+# Import our services for the floodscope 2025 june
 from services.data_fetcher import DataFetcher
 from services.cloud_analyzer import CloudAnalyzer
 from services.preprocessor import Preprocessor

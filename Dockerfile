@@ -1,11 +1,14 @@
 # Use Python 3.11 base image for FloodScope AI Complete
 FROM python:3.11
 
+# Non-interactive apt to avoid tzdata prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Set working directory
 WORKDIR /app
 
-# Install comprehensive system dependencies
-RUN apt-get update && apt-get install -y \
+# Install comprehensive system dependencies (Debian-friendly names)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gdal-bin \
     libgdal-dev \
     libproj-dev \
@@ -15,19 +18,19 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
-    libgl1-mesa-glx \
+    libgl1 \                 # <— was libgl1-mesa-glx
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \            # <— was libxrender-dev
     libgomp1 \
     libfontconfig1 \
     libxss1 \
     libxtst6 \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables for GDAL
+# Set environment variables for GDAL/PROJ
 ENV GDAL_DATA=/usr/share/gdal \
     PROJ_LIB=/usr/share/proj \
     PYTHONUNBUFFERED=1
@@ -35,7 +38,7 @@ ENV GDAL_DATA=/usr/share/gdal \
 # Copy requirements first for better caching
 COPY requirements-local.txt ./
 
-# Install Python dependencies directly with pip
+# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements-local.txt
 
@@ -43,10 +46,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Create .streamlit directory and config
-RUN mkdir -p .streamlit
-
-# Create optimized Streamlit config for Docker
-RUN echo '[server]\n\
+RUN mkdir -p .streamlit && \
+    echo '[server]\n\
 headless = true\n\
 address = "0.0.0.0"\n\
 port = 5000\n\
@@ -73,7 +74,7 @@ RUN mkdir -p data logs cache
 # Set permissions
 RUN chmod -R 755 /app
 
-# Create entrypoint script for better initialization
+# Create entrypoint script
 RUN echo '#!/bin/bash\n\
 echo "Starting FloodScope AI Complete Docker Image..."\n\
 echo "Initializing services..."\n\
@@ -82,7 +83,7 @@ echo "Application starting on port 5000"\n\
 exec "$@"' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # ----------------------------------------------
-# Add application environment variables
+# Add application environment variables (includes your keys)
 # ----------------------------------------------
 ENV APP_NAME="FloodScope AI" \
     APP_VERSION="1.0.0" \
@@ -116,9 +117,9 @@ ENV APP_NAME="FloodScope AI" \
 # Expose port
 EXPOSE 5000
 
-# Health check
+# Health check (Streamlit)
 HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=5 \
-    CMD curl -f http://localhost:5000/_stcore/health || exit 1
+    CMD curl -fsS http://localhost:5000/_stcore/health || exit 1
 
 # Set entrypoint and command
 ENTRYPOINT ["/app/entrypoint.sh"]

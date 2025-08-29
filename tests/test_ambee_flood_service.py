@@ -77,7 +77,7 @@ class TestAmbeeFloodService(unittest.TestCase):
         end_date = datetime.now()
         
         result = self.service.get_historical_flood_data(self.lat, self.lon, start_date, end_date)
-        
+        # assert check 
         self.assertEqual(result['status'], 'success')
         self.assertTrue(len(result['events']) > 0)
 

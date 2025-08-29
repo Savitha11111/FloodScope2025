@@ -1,10 +1,7 @@
 # Use Python 3.11 base image for FloodScope AI Complete
 FROM python:3.11
 
-# Non-interactive apt to avoid tzdata prompts
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Set working directory
 WORKDIR /app
 
 # Install comprehensive system dependencies (Debian-friendly names)
@@ -18,11 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
-    libgl1 \                 # <— was libgl1-mesa-glx
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender1 \            # <— was libxrender-dev
+    libxrender1 \
     libgomp1 \
     libfontconfig1 \
     libxss1 \
@@ -30,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables for GDAL/PROJ
+# Set environment variables for GDAL
 ENV GDAL_DATA=/usr/share/gdal \
     PROJ_LIB=/usr/share/proj \
     PYTHONUNBUFFERED=1
@@ -38,7 +35,7 @@ ENV GDAL_DATA=/usr/share/gdal \
 # Copy requirements first for better caching
 COPY requirements-local.txt ./
 
-# Install Python dependencies
+# Install Python dependencies directly with pip
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements-local.txt
 
@@ -74,7 +71,7 @@ RUN mkdir -p data logs cache
 # Set permissions
 RUN chmod -R 755 /app
 
-# Create entrypoint script
+# Create entrypoint script for better initialization
 RUN echo '#!/bin/bash\n\
 echo "Starting FloodScope AI Complete Docker Image..."\n\
 echo "Initializing services..."\n\
@@ -83,7 +80,7 @@ echo "Application starting on port 5000"\n\
 exec "$@"' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # ----------------------------------------------
-# Add application environment variables (includes your keys)
+# Add application environment variables (keys kept as requested)
 # ----------------------------------------------
 ENV APP_NAME="FloodScope AI" \
     APP_VERSION="1.0.0" \
@@ -114,13 +111,10 @@ ENV APP_NAME="FloodScope AI" \
     CORS_ENABLED=false \
     XSRF_PROTECTION=false
 
-# Expose port
 EXPOSE 5000
 
-# Health check (Streamlit)
 HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=5 \
     CMD curl -fsS http://localhost:5000/_stcore/health || exit 1
 
-# Set entrypoint and command
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["streamlit", "run", "app.py", "--server.port=5000", "--server.address=0.0.0.0", "--server.headless=true"]

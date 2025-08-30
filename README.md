@@ -26,6 +26,8 @@ An advanced AI-powered flood detection and monitoring system that provides compr
    cd floodscope-ai
    ```
 
+   <!-- major project  -->
+
 2. **Set up environment variables:**
    ```bash
    cp .env.example .env

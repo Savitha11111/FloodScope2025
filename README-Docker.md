@@ -13,14 +13,18 @@
 
 1. **Create environment file:**
    ```bash
-   cp .env.example .env
+   cp .env.sample .env
    ```
 
 2. **Add your API keys to `.env` file:**
    ```
+   SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id_here
+   SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret_here
    AMBEE_API_KEY=your_ambee_api_key_here
    OPENWEATHER_API_KEY=your_openweather_api_key_here
    ```
+
+   The Sentinel Hub credentials are required for satellite downloads; Docker Compose will stop with a clear error if they are missing. You can also provide them through another env file using `docker compose --env-file production.env up`.
 
 ### Running with Docker Compose (Recommended)
 
@@ -60,8 +64,11 @@ docker stop floodscope
 ## Production Deployment
 
 ### Environment Variables
+- `SENTINEL_HUB_CLIENT_ID`: Sentinel Hub OAuth client ID (required)
+- `SENTINEL_HUB_CLIENT_SECRET`: Sentinel Hub OAuth client secret (required)
 - `AMBEE_API_KEY`: Your Ambee API key for real-time flood data
 - `OPENWEATHER_API_KEY`: Your OpenWeather API key for weather data
+- Optional extras such as `COHERE_API_KEY`, `GMAIL_USER`, and `GMAIL_APP_PASSWORD` can also live in the env file.
 
 ### Health Monitoring
 The container includes health checks:

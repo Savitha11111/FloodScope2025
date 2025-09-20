@@ -1,33 +1,29 @@
 import requests
-import os
 from datetime import datetime, timedelta
 import numpy as np
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any
 import json
 import time
+
+from llm.config import (
+    SENTINEL_HUB_CLIENT_ID,
+    SENTINEL_HUB_CLIENT_SECRET,
+    require_sentinel_hub_credentials,
+)
 
 class DataFetcher:
     """Service for fetching satellite data from Sentinel Hub API"""
     
     def __init__(self):
         """Initialize the data fetcher with API credentials"""
-        self.client_id = os.getenv("SENTINELHUB_CLIENT_ID", "")
-        self.client_secret = os.getenv("SENTINELHUB_CLIENT_SECRET", "")
+        require_sentinel_hub_credentials()
+
+        self.client_id = SENTINEL_HUB_CLIENT_ID
+        self.client_secret = SENTINEL_HUB_CLIENT_SECRET
         self.base_url = "https://services.sentinel-hub.com"
         self.access_token = None
         self.token_expires = None
         self.authenticated = False
-        
-        # Try to authenticate if credentials are available
-        if self.client_id and self.client_secret:
-            try:
-                self._authenticate()
-                self.authenticated = True
-            except Exception as e:
-                print(f"Warning: Sentinel Hub authentication failed: {e}")
-                self.authenticated = False
-        else:
-            print("Warning: Sentinel Hub credentials not provided. Satellite imagery will be unavailable.")
     
     def _authenticate(self) -> bool:
         """Authenticate with Sentinel Hub API"""

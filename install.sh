@@ -55,8 +55,8 @@ OPENWEATHER_API_KEY=your_openweather_api_key_here
 AMBEE_API_KEY=your_ambee_api_key_here
 
 # Satellite Imagery APIs
-SENTINELHUB_CLIENT_ID=your_sentinelhub_client_id_here
-SENTINELHUB_CLIENT_SECRET=your_sentinelhub_client_secret_here
+SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id_here
+SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret_here
 EOF
     echo "⚠️  Please edit .env file and add your API keys before running the application"
     echo ""

@@ -1,6 +1,11 @@
+import os
 import unittest
 from unittest.mock import patch, MagicMock
 from datetime import datetime
+
+os.environ.setdefault("SENTINEL_HUB_CLIENT_ID", "test-client-id")
+os.environ.setdefault("SENTINEL_HUB_CLIENT_SECRET", "test-client-secret")
+
 from services.data_fetcher import DataFetcher
 from services.preprocessor import Preprocessor
 from services.flood_detector import FloodDetector

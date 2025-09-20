@@ -59,6 +59,21 @@ Your application will need these API keys to function:
 - `SENTINEL_HUB_CLIENT_ID` - For satellite data
 - `SENTINEL_HUB_CLIENT_SECRET` - For satellite data
 
+### Configuring Sentinel Hub credentials
+
+FloodScope refuses to start its satellite features unless the Sentinel Hub credentials are available. Use the new `.env.sample` file as a template and configure the variables according to your deployment target.
+
+```bash
+# .env snippet
+SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id_here
+SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret_here
+```
+
+- **Local runs:** copy `.env.sample` to `.env`, fill in the keys, and keep the file out of version control.
+- **Docker:** export the variables before calling `docker compose up`, or pass a dedicated file with `docker compose --env-file production.env up`.
+- **CI/CD pipelines:** store the keys as encrypted secrets and expose them as environment variables prior to invoking tests or deployment steps. The config module will raise a descriptive error if the values are missing, making misconfigurations obvious.
+- **Advanced:** use the `FLOODSCOPE_ENV_FILE` environment variable to point the app at a custom credentials file when `.env` cannot be used.
+
 ## Features Included
 - Real-time flood risk assessment
 - Multi-source data validation

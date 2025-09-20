@@ -3,7 +3,10 @@ Comprehensive Report Generator for FloodScope AI
 Generates detailed flood analysis reports in multiple formats
 """
 
-import streamlit as st
+try:
+    import streamlit as st  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    st = None
 from datetime import datetime, timedelta
 import pytz
 import json

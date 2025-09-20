@@ -5,7 +5,7 @@ import rasterio
 from rasterio.transform import from_origin
 from sentinelhub import SHConfig, SentinelHubRequest, DataCollection, MimeType, CRS, BBox
 
-from config import SENTINEL_HUB_CLIENT_ID, SENTINEL_HUB_CLIENT_SECRET, RAW_IMAGE_DIR
+from .config import SENTINEL_HUB_CLIENT_ID, SENTINEL_HUB_CLIENT_SECRET, RAW_IMAGE_DIR
 
 # Sentinel Hub Configuration
 config = SHConfig()

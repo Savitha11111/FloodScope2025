@@ -2,7 +2,7 @@ import os
 import numpy as np
 import rasterio
 from rasterio.enums import Resampling
-from config import PROCESSED_IMAGE_DIR
+from .config import PROCESSED_IMAGE_DIR
 
 def preprocess_image(image_path, date_str=None):
     print(f"\\n🔧 Preprocessing Image: {image_path}")

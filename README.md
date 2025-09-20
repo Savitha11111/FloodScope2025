@@ -55,6 +55,25 @@ chmod +x install.sh
 ./install.sh
 ```
 
+## 📦 Benchmark Datasets and Models
+
+The dual-model evaluation requires external datasets and checkpoints. Use the scripts in `datasets/` to download Sen1Floods11, FloodNet, and Copernicus EMS assets before running experiments. Model retrieval instructions for IBM–NASA Prithvi and Microsoft AI4Flood are documented in `models/README.md` (or the respective directories). After downloading, execute the preprocessing utilities under `datasets/processing/` to harmonise imagery and masks into the format expected by the evaluation toolkit.
+
+Key commands:
+
+```bash
+python datasets/download_sen1floods11.py --output-root datasets/sen1floods11
+python datasets/processing/sen1floods11.py --output-root datasets/sen1floods11
+
+python datasets/download_floodnet.py --output-root datasets/floodnet
+python datasets/processing/floodnet.py --output-root datasets/floodnet
+
+python datasets/download_copernicus_ems.py --event-id EMSR452 --output-root datasets/copernicus_ems --url <direct-zip-url>
+python datasets/processing/copernicus_ems.py --output-root datasets/copernicus_ems
+```
+
+Once data is staged, run the evaluation notebook at `notebooks/dual_model_evaluation.ipynb` to generate publication-quality metrics, ROC curves, and decision-impact plots.
+
 ## 📱 How to Use
 
 1. **Select Location:** Click on the map or use the search feature

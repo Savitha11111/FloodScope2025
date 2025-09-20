@@ -1,41 +1,83 @@
-import rasterio
-import numpy as np
+"""Cloud coverage estimation utilities."""
+from __future__ import annotations
 
-import rasterio
 import numpy as np
+import rasterio
 
-def calculate_cloud_coverage(image_path):
-    """
-    Calculate cloud coverage percentage using a simple brightness threshold heuristic on Sentinel-2 bands.
-    Args:
-        image_path (str): Path to the Sentinel-2 image (GeoTIFF).
-    Returns:
-        float: Estimated cloud coverage ratio (0 to 1).
+
+DEFAULT_BRIGHTNESS_THRESHOLD = 0.3
+DEFAULT_NDVI_THRESHOLD = 0.1
+
+
+class CloudCoverageError(RuntimeError):
+    """Raised when cloud coverage cannot be computed for a scene."""
+
+
+def _normalise_band(band: np.ndarray) -> np.ndarray:
+    band = band.astype(np.float32)
+    max_value = np.nanmax(band)
+    if max_value == 0:
+        return band
+    return band / max_value
+
+
+def calculate_cloud_coverage(
+    image_path: str,
+    *,
+    brightness_threshold: float = DEFAULT_BRIGHTNESS_THRESHOLD,
+    ndvi_threshold: float = DEFAULT_NDVI_THRESHOLD,
+) -> float:
+    """Estimate the fraction of cloudy pixels in a multi-band GeoTIFF.
+
+    The function attempts to read blue, green, red, and near-infrared bands. If the
+    near-infrared band is missing (common for aerial datasets such as FloodNet), a
+    fallback brightness-only heuristic is used.
     """
     try:
         with rasterio.open(image_path) as src:
-            # Read bands: B02 (blue), B03 (green), B04 (red), B08 (NIR)
-            blue = src.read(1).astype(float)
-            green = src.read(2).astype(float)
-            red = src.read(3).astype(float)
-            nir = src.read(4).astype(float)
+            band_count = src.count
+            if band_count < 3:
+                raise CloudCoverageError(
+                    "Cloud coverage estimation requires at least three optical bands (B02-B04)."
+                )
 
-            # Normalize bands to 0-1 range assuming 12-bit data (0-4095)
-            blue /= 4095.0
-            green /= 4095.0
-            red /= 4095.0
-            nir /= 4095.0
+            blue = _normalise_band(src.read(1))
+            green = _normalise_band(src.read(2))
+            red = _normalise_band(src.read(3))
 
-            # Simple cloud detection heuristic: high reflectance in visible bands and low NDVI
-            ndvi = (nir - red) / (nir + red + 1e-6)
+            if band_count >= 4:
+                nir = _normalise_band(src.read(4))
+                ndvi = (nir - red) / (nir + red + 1e-6)
+            else:
+                ndvi = None
+
             brightness = (blue + green + red) / 3.0
+            bright_mask = brightness > brightness_threshold
 
-            cloud_mask = (brightness > 0.3) & (ndvi < 0.1)
+            if ndvi is not None:
+                ndvi_mask = ndvi < ndvi_threshold
+                cloud_mask = bright_mask & ndvi_mask
+            else:
+                cloud_mask = bright_mask
+
+            total_pixels = cloud_mask.size
+            if total_pixels == 0:
+                raise CloudCoverageError("Empty raster provided for cloud coverage computation.")
 
             cloud_pixels = np.sum(cloud_mask)
-            total_pixels = cloud_mask.size
-            cloud_coverage = cloud_pixels / total_pixels
-            return cloud_coverage
-    except Exception as e:
-        print(f"Error calculating cloud coverage: {e}")
-        return 0.0
+            coverage = float(cloud_pixels / total_pixels)
+            if not np.isfinite(coverage):
+                raise CloudCoverageError("Computed non-finite cloud coverage value.")
+            return coverage
+    except CloudCoverageError:
+        raise
+    except Exception as exc:
+        raise CloudCoverageError(f"Failed to calculate cloud coverage for {image_path}: {exc}") from exc
+
+
+def cloud_percentage(image_path: str, **kwargs) -> float:
+    """Return cloud coverage as a percentage (0-100)."""
+    return calculate_cloud_coverage(image_path, **kwargs) * 100.0
+
+
+__all__ = ["calculate_cloud_coverage", "cloud_percentage", "CloudCoverageError"]

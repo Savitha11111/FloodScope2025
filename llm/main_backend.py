@@ -1,17 +1,49 @@
-from data_fetcher import fetch_image
-from preprocess import preprocess_image
-from model_inference import run_flood_detection as run_prithvi_inference
-from ai4g_inference import run_ai4g_sar_inference
 from datetime import datetime, timedelta
-from geopy.geocoders import Nominatim
 
-def check_cloud_coverage(image_path):
-    # Placeholder function to check cloud coverage in Sentinel-2 image
-    # Returns True if cloud coverage is low enough, False otherwise
-    # Implement actual cloud detection logic here
-    return True
+from .cloud_coverage import CloudCoverageError, calculate_cloud_coverage
+from .config import CLOUD_COVERAGE_THRESHOLD
+
+def check_cloud_coverage(image_path, *, threshold=None, coverage_fn=calculate_cloud_coverage, verbose=True):
+    """Return a tuple ``(is_clear, coverage_fraction)``.
+
+    When coverage cannot be measured the function conservatively returns
+    ``is_clear = False`` and ``coverage_fraction = float('nan')`` so that the
+    Sentinel-1 fallback is triggered instead of silently assuming clear skies.
+    """
+
+    threshold = CLOUD_COVERAGE_THRESHOLD if threshold is None else threshold
+    try:
+        coverage = float(coverage_fn(image_path))
+    except CloudCoverageError as exc:
+        if verbose:
+            print(
+                f"⚠️ Unable to measure cloud coverage for {image_path}: {exc}. "
+                "Falling back to Sentinel-1."
+            )
+        return False, float("nan")
+
+    if not (0.0 <= coverage <= 1.0) or coverage != coverage:  # NaN check via self-inequality
+        if verbose:
+            print(
+                f"⚠️ Invalid cloud coverage value {coverage!r} for {image_path}. "
+                "Treating scene as cloudy."
+            )
+        return False, float("nan")
+
+    if verbose:
+        print(
+            f"☁️ Cloud coverage for {image_path}: {coverage * 100:.2f}% "
+            f"(threshold {threshold * 100:.2f}%)"
+        )
+    return coverage < threshold, coverage
 
 def main():
+    from data_fetcher import fetch_image
+    from preprocess import preprocess_image
+    from model_inference import run_flood_detection as run_prithvi_inference
+    from ai4g_inference import run_ai4g_sar_inference
+    from geopy.geocoders import Nominatim
+
     print("\\n🌐 Flood Detection System - Prithvi and AI4G Models (Sentinel-2 and Sentinel-1)\\n")
     
     location_name = input("Enter Location Name (e.g., Bangalore, Delhi): ").strip()
@@ -55,8 +87,9 @@ def main():
         preprocessed_images = []
         for date in dates:
             raw_image = fetch_image(lat, lon, date, sensor="Sentinel-2")
-            if not check_cloud_coverage(raw_image):
-                print(f"☁️ High cloud coverage detected on {date}. Consider using Sentinel-1.")
+            is_clear, coverage = check_cloud_coverage(raw_image)
+            if not is_clear:
+                print(f"☁️ High cloud coverage detected on {date}: {coverage * 100:.2f}%")
             processed_image = preprocess_image(raw_image, date_str=date)
             preprocessed_images.append(processed_image)
         run_prithvi_inference(preprocessed_images)
@@ -78,8 +111,10 @@ def main():
         use_sentinel1 = False
         for date in dates:
             raw_image = fetch_image(lat, lon, date, sensor="Sentinel-2")
-            if not check_cloud_coverage(raw_image):
+            is_clear, coverage = check_cloud_coverage(raw_image)
+            if not is_clear:
                 use_sentinel1 = True
+                print(f"☁️ Cloud coverage {coverage * 100:.2f}% exceeds threshold. Switching to Sentinel-1.")
                 break
             processed_image = preprocess_image(raw_image, date_str=date)
             preprocessed_images.append(processed_image)

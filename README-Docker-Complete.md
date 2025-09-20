@@ -34,6 +34,8 @@ docker build -t floodscope-ai:complete .
 
 # Run the container
 docker run -p 5000:5000 \
+  -e SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id_here \
+  -e SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret_here \
   -e OPENWEATHER_API_KEY=your_api_key_here \
   -e GMAIL_USER=your_email@gmail.com \
   -e GMAIL_APP_PASSWORD=your_app_password \
@@ -47,8 +49,10 @@ docker run -p 5000:5000 \
 
 For enhanced functionality, you can provide these API keys:
 
-### Required for Weather Data
+### Required for Satellite & Weather Data
 ```bash
+SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id
+SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret
 OPENWEATHER_API_KEY=your_openweather_api_key
 ```
 
@@ -59,6 +63,8 @@ COHERE_API_KEY=your_cohere_api_key    # For AI chat assistant
 GMAIL_USER=your_email@gmail.com       # For email alerts
 GMAIL_APP_PASSWORD=your_app_password  # For email alerts
 ```
+
+> 💡 Tip: copy `.env.sample` to `.env`, fill in the values, and pass it to Docker with `--env-file` to keep credentials out of the command history. The application also honours `FLOODSCOPE_ENV_FILE` if you want to load a different credentials file at runtime.
 
 ### Getting API Keys
 1. **OpenWeather API**: Sign up at https://openweathermap.org/api (Free tier available)

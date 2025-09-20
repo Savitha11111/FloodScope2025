@@ -18,8 +18,8 @@ if not exist .env (
     echo # FloodScope AI - Environment Configuration > .env
     echo OPENWEATHER_API_KEY=your_openweather_api_key_here >> .env
     echo AMBEE_API_KEY=your_ambee_api_key_here >> .env
-    echo SENTINELHUB_CLIENT_ID=your_sentinelhub_client_id_here >> .env
-    echo SENTINELHUB_CLIENT_SECRET=your_sentinelhub_client_secret_here >> .env
+    echo SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id_here >> .env
+    echo SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret_here >> .env
     echo ⚠️  Edit .env file with your API keys for full functionality
 )
 

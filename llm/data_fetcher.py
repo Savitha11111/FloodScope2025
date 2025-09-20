@@ -5,12 +5,15 @@ import rasterio
 from rasterio.transform import from_origin
 from sentinelhub import SHConfig, SentinelHubRequest, DataCollection, MimeType, CRS, BBox
 
-from config import SENTINEL_HUB_CLIENT_ID, SENTINEL_HUB_CLIENT_SECRET, RAW_IMAGE_DIR
+from .config import (
+    RAW_IMAGE_DIR,
+    SENTINEL_HUB_CLIENT_ID,
+    SENTINEL_HUB_CLIENT_SECRET,
+    require_sentinel_hub_credentials,
+)
 
 # Sentinel Hub Configuration
 config = SHConfig()
-config.sh_client_id = SENTINEL_HUB_CLIENT_ID
-config.sh_client_secret = SENTINEL_HUB_CLIENT_SECRET
 
 # Updated evalscript for Sentinel-2 with 6 bands: B02, B03, B04, B08, B11, B12
 EVALSCRIPT_SENTINEL2_6BANDS = """
@@ -44,7 +47,10 @@ def fetch_image(lat, lon, date, sensor="Sentinel-2"):
     """
     Fetches a real-time image from Sentinel-2 or Sentinel-1 using Sentinel Hub API.
     """
-    print(f"\\n📡 Fetching Real-Time {sensor} Image using Sentinel Hub...")
+    require_sentinel_hub_credentials()
+    config.sh_client_id = SENTINEL_HUB_CLIENT_ID
+    config.sh_client_secret = SENTINEL_HUB_CLIENT_SECRET
+    print(f"\nFetching Real-Time {sensor} Image using Sentinel Hub...")
 
     bbox = BBox([lon - 0.01, lat - 0.01, lon + 0.01, lat + 0.01], CRS.WGS84)
     collection = DataCollection.SENTINEL2_L2A if sensor == "Sentinel-2" else DataCollection.SENTINEL1_IW

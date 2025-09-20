@@ -30,8 +30,8 @@ An advanced AI-powered flood detection and monitoring system that provides compr
 
 2. **Set up environment variables:**
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
+   cp .env.sample .env
+   # Edit .env with your API keys (Sentinel Hub credentials are required)
    ```
 
 3. **Run with Docker:**
@@ -54,6 +54,32 @@ An advanced AI-powered flood detection and monitoring system that provides compr
 chmod +x install.sh
 ./install.sh
 ```
+
+## 🔐 Credential Configuration
+
+Sentinel Hub credentials are mandatory for any feature that fetches satellite imagery. FloodScope reads them from the `SENTINEL_HUB_CLIENT_ID` and `SENTINEL_HUB_CLIENT_SECRET` environment variables. The application can also load them from a `.env` file so that local development remains convenient.
+
+```bash
+# Example .env (see .env.sample for the full template)
+SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id_here
+SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret_here
+```
+
+### Local development
+
+- Copy `.env.sample` to `.env` and fill in your credentials before running Streamlit.
+- Alternatively export the variables directly (`export SENTINEL_HUB_CLIENT_ID=...`).
+- Use the `FLOODSCOPE_ENV_FILE` variable if you need to point the app at a different credentials file (e.g., when running multiple projects side by side).
+
+### Docker
+
+- `docker-compose.yml` reads the credentials from your shell environment. You can either export them before running `docker compose up` or supply an env file via `docker compose --env-file my.env up`.
+- When building custom images, pass the variables at runtime (`docker run -e SENTINEL_HUB_CLIENT_ID=... -e SENTINEL_HUB_CLIENT_SECRET=... floodscope-ai`).
+
+### Continuous Integration / Deployment
+
+- Store the credentials as encrypted secrets in your CI platform (e.g., `SENTINEL_HUB_CLIENT_ID`, `SENTINEL_HUB_CLIENT_SECRET`).
+- Inject them into the workflow environment before running tests or deployment steps. The config module fails fast with a descriptive error if the values are missing, so misconfigurations surface immediately.
 
 ## 📱 How to Use
 

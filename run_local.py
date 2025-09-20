@@ -49,21 +49,27 @@ def check_dependencies():
 
 def check_environment():
     """Check environment variables"""
-    env_vars = [
-        'OPENWEATHER_API_KEY',
-        'AMBEE_API_KEY', 
-        'SENTINELHUB_CLIENT_ID',
-        'SENTINELHUB_CLIENT_SECRET'
-    ]
-    
+    env_vars = {
+        'OPENWEATHER_API_KEY': [],
+        'AMBEE_API_KEY': [],
+        'SENTINEL_HUB_CLIENT_ID': ['SENTINELHUB_CLIENT_ID', 'SH_CLIENT_ID'],
+        'SENTINEL_HUB_CLIENT_SECRET': ['SENTINELHUB_CLIENT_SECRET', 'SH_CLIENT_SECRET'],
+    }
+
     missing_vars = []
-    for var in env_vars:
-        if os.getenv(var):
+    for var, aliases in env_vars.items():
+        value = os.getenv(var)
+        if value:
             print(f"✅ {var} is set")
+            continue
+
+        legacy_var = next((alias for alias in aliases if os.getenv(alias)), None)
+        if legacy_var:
+            print(f"⚠️  {var} - using legacy variable {legacy_var}")
         else:
             print(f"⚠️  {var} - NOT SET")
             missing_vars.append(var)
-    
+
     return missing_vars
 
 def check_files():

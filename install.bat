@@ -56,8 +56,8 @@ if not exist .env (
     echo AMBEE_API_KEY=your_ambee_api_key_here >> .env
     echo. >> .env
     echo # Satellite Imagery APIs >> .env
-    echo SENTINELHUB_CLIENT_ID=your_sentinelhub_client_id_here >> .env
-    echo SENTINELHUB_CLIENT_SECRET=your_sentinelhub_client_secret_here >> .env
+    echo SENTINEL_HUB_CLIENT_ID=your_sentinel_hub_client_id_here >> .env
+    echo SENTINEL_HUB_CLIENT_SECRET=your_sentinel_hub_client_secret_here >> .env
     echo ⚠️  Please edit .env file and add your API keys before running the application
     echo.
     echo 📖 API Key Sources:

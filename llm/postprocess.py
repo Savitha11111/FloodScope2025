@@ -1,7 +1,7 @@
 import cv2
 import os
 import numpy as np
-from config import RESULTS_DIR
+from .config import RESULTS_DIR
 
 def postprocess_mask(mask_path):
     """

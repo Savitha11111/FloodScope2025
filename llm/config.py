@@ -21,3 +21,5 @@ RESULTS_DIR = "data/results/"
 os.makedirs(RAW_IMAGE_DIR, exist_ok=True)
 os.makedirs(PROCESSED_IMAGE_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
+
+CLOUD_COVERAGE_THRESHOLD = float(os.getenv("CLOUD_COVERAGE_THRESHOLD", "0.3"))

@@ -3,6 +3,7 @@ import unittest
 import subprocess
 import shutil
 
+@unittest.skip("Backend CLI integration requires external services and real Sentinel data")
 class TestBackendFloodDetection(unittest.TestCase):
     def setUp(self):
         # Setup test parameters

@@ -1,121 +1,83 @@
-# test_model_inference.py
-
+import numpy as np
 import pytest
-import sys
-from unittest import mock
+import rasterio
+import torch
+from rasterio.transform import from_origin
 
-# Import the function to test
 from backend.model_inference import run_flood_detection
 
-# Patch the config constants and subprocess for all tests in this module
+
+class DummyProcessor:
+    def __call__(self, *, images, return_tensors="pt"):
+        array = np.asarray(images, dtype=np.float32)
+        if array.ndim == 3:
+            array = array[np.newaxis, ...]
+        pixel_values = torch.from_numpy(np.transpose(array, (0, 3, 1, 2)))
+        return {"pixel_values": pixel_values}
+
+
+class DummyModel(torch.nn.Module):
+    def forward(self, pixel_values):  # pragma: no cover - exercised via tests
+        batch, _, height, width = pixel_values.shape
+        logits = torch.zeros((batch, 2, height, width), dtype=torch.float32)
+        logits[:, 1] = 1.0
+        return type("Output", (), {"logits": logits})()
+
+
 @pytest.fixture(autouse=True)
-def patch_config_and_subprocess(monkeypatch):
-    # Patch config constants
-    monkeypatch.setattr("backend.model_inference.PRITHVI_MODEL_PATH", "/fake/model/path")
-    monkeypatch.setattr("backend.model_inference.PRITHVI_CONFIG_PATH", "/fake/config/path")
-    monkeypatch.setattr("backend.model_inference.RESULTS_DIR", "/fake/results/dir")
-    # Patch subprocess.run
-    with mock.patch("backend.model_inference.subprocess.run") as mock_run:
-        yield mock_run
+def patch_model_loader(monkeypatch):
+    from llm import model_inference as inference_module
 
-class TestRunFloodDetection:
-    # --- Happy Path Tests ---
+    def fake_loader():
+        return DummyModel(), DummyProcessor()
 
-    @pytest.mark.happy
-    def test_single_image_path_runs_subprocess(self, patch_config_and_subprocess):
-        """
-        Test that run_flood_detection correctly constructs and calls subprocess.run
-        with a single image path.
-        """
-        image_paths = ["/tmp/image1.tif"]
-        run_flood_detection(image_paths)
-        # Check subprocess.run was called once
-        assert patch_config_and_subprocess.call_count == 1
-        # Check the command string contains the image path and all config values
-        called_args, called_kwargs = patch_config_and_subprocess.call_args
-        command = called_args[0]
-        assert "/tmp/image1.tif" in command
-        assert "--config_path /fake/config/path" in command
-        assert "--checkpoint /fake/model/path" in command
-        assert "--output_dir /fake/results/dir" in command
-        assert "--rgb_outputs" in command
-        assert "--data_files /tmp/image1.tif" in command
-        assert called_kwargs["shell"] is True
-        assert called_kwargs["check"] is True
+    monkeypatch.setattr("models.prithvi_transformers.model_loader.load_prithvi_model", fake_loader)
+    monkeypatch.setattr("llm.model_inference.load_prithvi_model", fake_loader)
+    inference_module._MODEL_CACHE = None
+    yield
+    inference_module._MODEL_CACHE = None
 
-    @pytest.mark.happy
-    def test_multiple_image_paths_are_joined(self, patch_config_and_subprocess):
-        """
-        Test that multiple image paths are joined with spaces in the command.
-        """
-        image_paths = ["/tmp/img1.tif", "/tmp/img2.tif", "/tmp/img3.tif"]
-        run_flood_detection(image_paths)
-        called_args, _ = patch_config_and_subprocess.call_args
-        command = called_args[0]
-        # All image paths should be present, space-separated
-        assert "--data_files /tmp/img1.tif /tmp/img2.tif /tmp/img3.tif" in command
 
-    @pytest.mark.happy
-    def test_print_statements_are_executed(self, patch_config_and_subprocess, capsys):
-        """
-        Test that the expected print statements are output.
-        """
-        image_paths = ["/tmp/image1.tif"]
-        run_flood_detection(image_paths)
-        captured = capsys.readouterr()
-        assert "🚀 Running Prithvi Model for Flood Detection..." in captured.out
-        assert "✅ Flood Mask Saved in:" in captured.out
-        assert "/fake/results/dir" in captured.out
+def _write_test_geotiff(path, *, bands=3):
+    data = np.random.rand(bands, 16, 16).astype(np.float32)
+    profile = {
+        "driver": "GTiff",
+        "height": 16,
+        "width": 16,
+        "count": bands,
+        "dtype": rasterio.float32,
+        "transform": from_origin(0, 0, 10, 10),
+        "crs": "EPSG:4326",
+    }
+    with rasterio.open(path, "w", **profile) as dst:
+        dst.write(data)
 
-    # --- Edge Case Tests ---
 
-    @pytest.mark.edge
-    def test_empty_image_paths_list(self, patch_config_and_subprocess):
-        """
-        Test that an empty image_paths list still calls subprocess with no data files.
-        """
-        image_paths = []
-        run_flood_detection(image_paths)
-        called_args, _ = patch_config_and_subprocess.call_args
-        command = called_args[0]
-        # --data_files should be present but empty
-        assert "--data_files" in command
-        # There should be no file after --data_files
-        assert "--data_files" in command
-        # The command should not have any .tif file after --data_files
-        assert ".tif" not in command
+def test_run_flood_detection_creates_mask(tmp_path, monkeypatch):
+    image_path = tmp_path / "scene.tif"
+    _write_test_geotiff(image_path)
 
-    @pytest.mark.edge
-    def test_image_paths_with_special_characters(self, patch_config_and_subprocess):
-        """
-        Test that image paths with spaces and special characters are handled.
-        """
-        image_paths = ["/tmp/stränge path/with space@file.tif"]
-        run_flood_detection(image_paths)
-        called_args, _ = patch_config_and_subprocess.call_args
-        command = called_args[0]
-        # The special path should appear as-is in the command string
-        assert "/tmp/stränge path/with space@file.tif" in command
+    results_dir = tmp_path / "results"
+    outputs = run_flood_detection([str(image_path)], results_dir=results_dir)
 
-    @pytest.mark.edge
-    def test_subprocess_raises_exception(self, monkeypatch):
-        """
-        Test that if subprocess.run raises CalledProcessError, it propagates.
-        """
-        def raise_error(*args, **kwargs):
-            raise subprocess.CalledProcessError(1, "cmd")
-        monkeypatch.setattr("backend.model_inference.subprocess.run", raise_error)
-        image_paths = ["/tmp/image1.tif"]
-        with pytest.raises(subprocess.CalledProcessError):
-            run_flood_detection(image_paths)
+    assert len(outputs) == 1
+    assert outputs[0].exists()
 
-    @pytest.mark.edge
-    def test_non_string_image_paths(self, patch_config_and_subprocess):
-        """
-        Test that non-string elements in image_paths are converted to string in the command.
-        """
-        image_paths = [123, None, "/tmp/image3.tif"]
-        # The function does not explicitly cast to str, so this will raise TypeError
-        # when trying to join non-string types. We expect this error.
-        with pytest.raises(TypeError):
-            run_flood_detection(image_paths)
+    with rasterio.open(outputs[0]) as src:
+        data = src.read(1)
+        assert data.shape == (16, 16)
+        assert np.all((data == 0) | (data == 1))
+
+
+def test_run_flood_detection_requires_three_bands(tmp_path):
+    image_path = tmp_path / "invalid.tif"
+    _write_test_geotiff(image_path, bands=2)
+
+    with pytest.raises(ValueError):
+        run_flood_detection([str(image_path)], results_dir=tmp_path / "results")
+
+
+def test_run_flood_detection_handles_missing_images(tmp_path):
+    missing_path = tmp_path / "missing.tif"
+    with pytest.raises(FileNotFoundError):
+        run_flood_detection([str(missing_path)], results_dir=tmp_path / "results")

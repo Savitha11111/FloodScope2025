@@ -1,9 +1,6 @@
 import numpy as np
 from typing import Dict, Any, Optional, Tuple, List
 import cv2
-from sklearn.cluster import KMeans
-from scipy import ndimage
-from scipy.ndimage import binary_fill_holes, binary_opening, binary_closing
 
 class FloodDetector:
     """AI-powered flood detection service using simplified UNet-like algorithms"""

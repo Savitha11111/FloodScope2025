@@ -1,39 +1,64 @@
-# test_prithvi_model.py
+"""Tests for the Prithvi model loader."""
 
-from transformers import AutoModel, AutoProcessor
-import torch
+from __future__ import annotations
 
-# Local import (your model loader function)
-from model_loader import load_prithvi_model
+import sys
+from pathlib import Path
+from unittest import mock
 
-# Load the Prithvi model and processor
-print("\n🚀 Loading IBM-NASA Prithvi Model (Sentinel-2) using Transformers...")
-model, processor = load_prithvi_model()
+import pytest
 
-# Confirm model loading
-print("✅ Model and Processor loaded successfully.")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-# Set model to evaluation mode
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
-model.eval()
+from models.prithvi_transformers import model_loader
 
-# Sample test with a placeholder image (replace with actual test image path)
-from PIL import Image
 
-image_path = "sample_image.png"  # Replace with your test image path
-image = Image.open(image_path)
+@pytest.fixture()
+def local_checkpoint_dir(tmp_path: Path) -> Path:
+    """Create a minimal local checkpoint directory structure."""
 
-# Preprocess the image
-inputs = processor(images=image, return_tensors="pt").to(device)
+    model_dir = tmp_path / "model"
+    processor_dir = tmp_path / "processor"
+    model_dir.mkdir()
+    processor_dir.mkdir()
 
-# Make a prediction
-with torch.no_grad():
-    outputs = model(**inputs)
+    (model_dir / "config.json").write_text("{}", encoding="utf-8")
+    (model_dir / "pytorch_model.bin").write_bytes(b"")
+    (processor_dir / "preprocessor_config.json").write_text("{}", encoding="utf-8")
 
-# Display the output
-print("\n🔍 Model Output:", outputs)
+    return tmp_path
 
-# Post-process (if needed, depending on model type)
 
-print("✅ Test completed.")
+def test_load_prithvi_model_prefers_local_checkpoint(monkeypatch, local_checkpoint_dir: Path):
+    """Ensure that a local checkpoint is used without attempting a network load."""
+
+    monkeypatch.setenv("PRITHVI_MODEL_PATH", str(local_checkpoint_dir))
+
+    model_stub = object()
+    processor_stub = object()
+
+    with (
+        mock.patch(
+            "models.prithvi_transformers.model_loader.AutoModelForSemanticSegmentation.from_pretrained",
+            return_value=model_stub,
+        ) as mock_model,
+        mock.patch(
+            "models.prithvi_transformers.model_loader.AutoProcessor.from_pretrained",
+            return_value=processor_stub,
+        ) as mock_processor,
+        mock.patch(
+            "models.prithvi_transformers.model_loader.AutoConfig.from_pretrained",
+        ) as mock_config,
+    ):
+        model, processor = model_loader.load_prithvi_model()
+
+    model_dir = local_checkpoint_dir / "model"
+    processor_dir = local_checkpoint_dir / "processor"
+
+    assert model is model_stub
+    assert processor is processor_stub
+    mock_model.assert_called_once_with(str(model_dir))
+    mock_processor.assert_called_once_with(str(processor_dir))
+    mock_config.assert_not_called()
